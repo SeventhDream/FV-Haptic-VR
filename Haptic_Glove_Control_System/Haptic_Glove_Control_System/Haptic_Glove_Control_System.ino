@@ -24,21 +24,13 @@
 
 // called this way, it uses the default address 0x40
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
-// you can also call it with a different address you want
-//Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x41);
-// you can also call it with a different address and I2C interface
-//Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x40, Wire);
 
-// Depending on your servo make, the pulse width min and max may vary, you 
-// want these to be as small/large as possible without hitting the hard stop
-// for max range. You'll have to tweak them as necessary to match the servos you
-// have!
-#define SERVOMIN  50 // This is the 'minimum' pulse length count (out of 4096)
+#define SERVOMIN  70 // This is the 'minimum' pulse length count (out of 4096)
 #define SERVOMAX  480 // This is the 'maximum' pulse length count (out of 4096)
 #define USMIN  600 // This is the rounded 'minimum' microsecond length based on the minimum pulse of 150
 #define USMAX  2400 // This is the rounded 'maximum' microsecond length based on the maximum pulse of 600
 #define SERVO_FREQ 50 // Analog servos run at ~50 Hz updates
-const int flexPin = A0; //pin A0 to read analog input
+const int fsrPin = A0; //pin A0 to read analog input
 int value; //save analog value
 // our servo # counter
 uint8_t servonum = 0;
@@ -47,13 +39,13 @@ uint8_t servonum = 0;
 // more the readings will be smoothed, but the slower the output will respond to
 // the input. Using a constant rather than a normal variable lets us use this
 // value to determine the size of the readings array.
-const int numReadings = 10;
-
+const int numReadings = 3;
+bool isFreeSpace = true;
 int readings[numReadings];  // the readings from the analog input
 int readIndex = 0;          // the index of the current reading
 int total = 0;              // the running total
 int average = 0;            // the average
-
+int desiredForce = 0;
 void setup() {
   Serial.begin(9600);
   Serial.println("8 channel Servo test!");
@@ -87,36 +79,40 @@ void setup() {
   delay(10);
 }
 
-// You can use this function if you'd like to set the pulse length in seconds
-// e.g. setServoPulse(0, 0.001) is a ~1 millisecond pulse width. It's not precise!
-void setServoPulse(uint8_t n, double pulse) {
-  double pulselength;
+void loop() {
+
+  updateReading();
+
+  // send it to the computer as ASCII digits
+  if (Serial.available() > 0)
+    {
+        // Got something
+        int read = Serial.read();
+        if (read >= 0)
+        {
+            // Print out what we read
+            Serial.write(read);
+        }
+    }
+
+  if (isFreeSpace){
+    value = map(average, 0, 800, SERVOMIN, SERVOMAX);//Map value 0-1023 to 0-255 (PWM)
+
+    
+  } else {
+    value = 150;
+  }
+  pwm.setPWM(servonum, 0, value);          //Send PWM value to led
   
-  pulselength = 1000000;   // 1,000,000 us per second
-  pulselength /= SERVO_FREQ;   // Analog servos run at ~60 Hz updates
-  Serial.print(pulselength); Serial.println(" us per period"); 
-  pulselength /= 4096;  // 12 bits of resolution
-  Serial.print(pulselength); Serial.println(" us per bit"); 
-  pulse *= 1000000;  // convert input seconds to us
-  pulse /= pulselength;
-  Serial.println(pulse);
-  pwm.setPWM(n, 0, pulse);
+ delay(10); 
 }
 
-void loop() {
-  //Read and save analog value from potentiometer
-  for (int i = 0; i < numReadings; i++) {
-  
-  Serial.print(readings[i]);
-  Serial.print(" ");
-  } 
-
-  Serial.print(" = ");               //Print value
+void updateReading(){
   // subtract the last reading:
   total = total - readings[readIndex];
   
   // read from the sensor:
-  readings[readIndex] = analogRead(flexPin);
+  readings[readIndex] = analogRead(fsrPin);
   // add the reading to the total:
   total = total + readings[readIndex];
   // advance to the next position in the array:
@@ -130,16 +126,4 @@ void loop() {
 
   // calculate the average:
   average = total / numReadings;
-  Serial.print(average);
-  Serial.print(" = ");
-  // send it to the computer as ASCII digits
-
-  value = map(average, 650, 850, 180, 380);//Map value 0-1023 to 0-255 (PWM)
-    Serial.println(value);
-  pwm.setPWM(servonum, 0, value);          //Send PWM value to led
-  delay(10);    
-
-
 }
-
-  
