@@ -96,7 +96,7 @@ void loop() {
     }
 
   if (isFreeSpace){
-    value = map(average, 0, 800, SERVOMIN, SERVOMAX);//Map value 0-1023 to 0-255 (PWM)
+    value = map(average, 0, 500, SERVOMIN+200, SERVOMAX);//Map value 0-1023 to 0-255 (PWM)
 
     
   } else {
