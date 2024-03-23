@@ -1,5 +1,8 @@
 #include <Adafruit_PWMServoDriver.h>
+#include <SoftwareSerial.h>
+#include <SerialCommand.h>
 
+SerialCommand sCmd;
 /*************************************************** 
   This is an example for our Adafruit 16-channel PWM & Servo driver
   Servo test - this will drive 8 servos, one after the other on the
@@ -46,14 +49,21 @@ int readIndex = 0;          // the index of the current reading
 int total = 0;              // the running total
 int average = 0;            // the average
 int desiredForce = 0;
+
+
+
 void setup() {
   Serial.begin(9600);
-  Serial.println("8 channel Servo test!");
+  while (!Serial);
+
+  sCmd.addCommand("PING", pingHandler);
+  //Serial.println("8 channel Servo test!");
 
     // initialize all the readings to 0:
   for (int thisReading = 0; thisReading < numReadings; thisReading++) {
     readings[thisReading] = 0;
   }
+  pinMode(LED_BUILTIN, OUTPUT);
 
 
   pwm.begin();
@@ -82,18 +92,8 @@ void setup() {
 void loop() {
 
   updateReading();
-
-  // send it to the computer as ASCII digits
-  if (Serial.available() > 0)
-    {
-        // Got something
-        int read = Serial.read();
-        if (read >= 0)
-        {
-            // Print out what we read
-            Serial.write(read);
-        }
-    }
+  
+  checkSerial();
 
   if (isFreeSpace){
     value = map(average, 0, 500, SERVOMIN+200, SERVOMAX);//Map value 0-1023 to 0-255 (PWM)
@@ -126,4 +126,23 @@ void updateReading(){
 
   // calculate the average:
   average = total / numReadings;
+}
+void checkSerial(){
+  // Reading in data in game project
+  if (Serial.available() > 0){
+    sCmd.readSerial();
+  }
+}
+
+void pingHandler(const char *command){
+  Serial.println("PONG");
+}
+
+void echoHandler () {
+  char *arg;
+  arg = sCmd.next();
+  if (arg != NULL)
+    Serial.println(arg);
+  else
+    Serial.println("nothing to echo");
 }
