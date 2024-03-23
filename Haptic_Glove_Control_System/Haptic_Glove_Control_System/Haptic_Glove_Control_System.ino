@@ -48,15 +48,15 @@ int readings[numReadings];  // the readings from the analog input
 int readIndex = 0;          // the index of the current reading
 int total = 0;              // the running total
 int average = 0;            // the average
-int desiredForce = 0;
-
-
+int desiredPos = 0;
 
 void setup() {
   Serial.begin(9600);
   while (!Serial);
 
   sCmd.addCommand("PING", pingHandler);
+  sCmd.addCommand("ECHO", echoHandler);
+  sCmd.addCommand("STATE", stateHandler);
   //Serial.println("8 channel Servo test!");
 
     // initialize all the readings to 0:
@@ -100,7 +100,7 @@ void loop() {
 
     
   } else {
-    value = 150;
+    value = desiredPos;
   }
   pwm.setPWM(servonum, 0, value);          //Send PWM value to led
   
@@ -145,4 +145,27 @@ void echoHandler () {
     Serial.println(arg);
   else
     Serial.println("nothing to echo");
+}
+
+void stateHandler () {
+  char *arg1;
+  char *arg2;
+  
+  arg1 = sCmd.next();
+  arg2 = sCmd.next();
+
+  if ((atoi(arg1) == 0) && (arg2 != NULL)){
+    isFreeSpace = true;
+    desiredPos = atoi(arg2);
+    char strBuf[50];
+    sprintf(strBuf, "Response: %s + %s", arg1, arg2);
+    Serial.println(strBuf);
+  } 
+  else if ((atoi(arg1) == 1) && (arg2 != NULL)){
+    isFreeSpace = false;
+    desiredPos = atoi(arg2);
+  }
+  else{
+    Serial.println("nothing to echo");
+  }
 }
